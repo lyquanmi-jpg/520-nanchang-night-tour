@@ -1,4 +1,4 @@
-export const easterEggs = [
+﻿export const easterEggs = [
   {
     id: 'river-bench',
     name: '半张长椅',
@@ -90,14 +90,40 @@ export const easterEggs = [
     type: 'npc-repeat',
     npcId: 'hongjie',
     text: '红姐说：你看，照片里的你没有输给今天。',
+  },  {
+    id: 'store-small-lamp',
+    name: '认真亮着的小灯',
+    sceneId: 'store',
+    x: 348,
+    y: 442,
+    label: '小灯',
+    text: '这盏灯没有打开什么隐藏入口，只是认真亮着。',
   },
   {
-    id: 'owen-birthday',
-    name: '藏起来的生日',
-    type: 'owen',
-    text: '有人把生日藏得很轻，只留下一杯热的和一盏灯。',
+    id: 'stall_note',
+    name: '小摊便签',
+    sceneId: 'owen_stall',
+    x: 270,
+    y: 226,
+    label: '便签',
+    text: '便签上写着：如果不知道去哪，就先把这一串吃完。',
   },
-];
+  {
+    id: 'extra_chair',
+    name: '多摆的一把小凳子',
+    sceneId: 'owen_stall',
+    x: 92,
+    y: 372,
+    label: '小凳子',
+    text: '小凳子空着一把，像是默认会有人路过坐下。',
+  },
+  {
+    id: 'owen_hidden_birthday',
+    name: '藏在小摊后的生日',
+    type: 'npc-repeat',
+    npcId: 'owen_stall_owner',
+    text: 'Owen 看了看小摊角落的小蛋糕，笑了一下。其实今天也是我的生日。但我只是顺手把小摊开着。520这天，路过的人很多。总有人需要一盏灯，或者一串热的。',
+  },];
 
 export const easterEggById = Object.fromEntries(easterEggs.map((egg) => [egg.id, egg]));
 export const EASTER_EGG_TOTAL = easterEggs.length;

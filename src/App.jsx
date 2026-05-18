@@ -8,7 +8,7 @@ import PixelScene from './components/PixelScene.jsx';
 import ResultCard from './components/ResultCard.jsx';
 import RouteMap from './components/RouteMap.jsx';
 import ScreenShell from './components/ScreenShell.jsx';
-import { npcs, owenNpc } from './data/npcData.js';
+import { npcs } from './data/npcData.js';
 import { EASTER_EGG_TOTAL, easterEggById, easterEggs } from './data/easterEggs.js';
 import { eventInteractions, npcInteractions } from './data/npcInteractions.js';
 import { SCENE_SIZE, sceneById, scenes } from './data/scenes.js';
@@ -16,6 +16,7 @@ import {
   getNextRecommendedScene,
   getOverallProgress,
   getReportProgressHint,
+  getSceneMissingItems,
   getSceneNudge,
   getSceneProgress,
 } from './utils/progress.js';
@@ -112,9 +113,7 @@ export default function App() {
   const [idleHintVisible, setIdleHintVisible] = useState(false);
   const [copied, setCopied] = useState(false);
   const [endingGenerated, setEndingGenerated] = useState(false);
-  const [lampClickCount, setLampClickCount] = useState(0);
   const [owenEasterEggFound, setOwenEasterEggFound] = useState(false);
-  const [owenStallVisible, setOwenStallVisible] = useState(false);
   const [owenNoteTaken, setOwenNoteTaken] = useState(false);
   const [owenBirthdayHintSeen, setOwenBirthdayHintSeen] = useState(false);
 
@@ -147,6 +146,17 @@ export default function App() {
   const nextRecommendation = useMemo(() => getNextRecommendedScene(scenes, gameState), [gameState]);
   const reportProgressHint = useMemo(() => getReportProgressHint(gameState), [gameState]);
   const sceneNudge = useMemo(() => getSceneNudge(currentScene, gameState), [currentScene, gameState]);
+  const currentSceneMissingItems = useMemo(() => getSceneMissingItems(currentScene, gameState), [currentScene, gameState]);
+  const sceneCompletionHint = currentSceneProgress.mainComplete
+    ? `主流程已完成，可退出地图。${currentSceneMissingItems.easterEggIds.length ? `当前仍有 ${currentSceneMissingItems.easterEggIds.length} 个彩蛋未发现，可继续探索。` : '本地点彩蛋也已经收好。'}`
+    : `主流程未完成：还差 ${currentSceneMissingItems.npcIds.length} 位群友、${currentSceneMissingItems.eventIds.length} 段记忆。彩蛋不影响主流程。`;
+  const debugLog = useCallback((label, payload = {}) => {
+    if (!debugEnabled) return;
+    console.info(`[520-debug] ${label}`, {
+      mapId: currentSceneId,
+      ...payload,
+    });
+  }, [currentSceneId, debugEnabled]);
 
   const showToast = useCallback((message) => {
     setToast(message);
@@ -173,9 +183,16 @@ export default function App() {
   const findEasterEgg = useCallback((eggId) => {
     const egg = easterEggById[eggId];
     if (!egg) return;
+    if (eggId === 'owen_hidden_birthday') setOwenEasterEggFound(true);
     setFoundEasterEggIds((current) => {
       if (current.includes(eggId)) return current;
       const next = [...current, eggId];
+      debugLog('easter-egg-found', {
+        eggId,
+        eggName: egg.name,
+        foundEasterEggIds: next,
+        sceneProgress: getSceneProgress(currentScene, { ...gameState, foundEasterEggIds: next }),
+      });
       showToast(`发现夜游彩蛋：${egg.name}`);
       window.setTimeout(() => {
         if (next.length === 1) showToast('你发现了一个夜游彩蛋。南昌今晚好像还藏着更多小东西。');
@@ -186,10 +203,19 @@ export default function App() {
       setDialog({ speaker: egg.name, lines: [egg.text] });
       return next;
     });
-  }, [showToast]);
+  }, [currentScene, debugLog, gameState, showToast]);
 
   const enterScene = (sceneId) => {
     const scene = sceneById[sceneId];
+    const nextState = { ...gameState, visitedLocations: addUnique(visitedLocations, sceneId) };
+    debugLog('enter-scene', {
+      mapId: sceneId,
+      npcIds: scene.npcs.map((npc) => npc.id),
+      completedInteractionIds,
+      foundEasterEggIds,
+      sceneProgress: getSceneProgress(scene, nextState),
+      sceneMissing: getSceneMissingItems(scene, nextState),
+    });
     setCurrentSceneId(sceneId);
     setPlayerPosition(START_POSITION);
     setDialog({
@@ -210,10 +236,23 @@ export default function App() {
 
   const returnToRoute = () => {
     if (screen === 'scene' && !currentSceneProgress.mainComplete && !dialog && !activeInteraction) {
+      const missingNpcNames = currentSceneMissingItems.npcIds.map((id) => npcById[id]?.name || id);
+      debugLog('return-check-blocked', {
+        status: 'main-incomplete',
+        missingNpcIds: currentSceneMissingItems.npcIds,
+        missingNpcNames,
+        missingEventIds: currentSceneMissingItems.eventIds,
+        missingFragments: currentSceneMissingItems.fragments,
+        progress: currentSceneProgress,
+      });
       setPendingRouteReturn(true);
       setDialog({
         speaker: currentScene.name,
-        lines: ['这里好像还有人没聊完，要现在离开吗？'],
+        lines: [
+          missingNpcNames.length
+            ? `这里还有 ${missingNpcNames.join('、')} 没聊完，要现在离开吗？`
+            : `这里还有 ${currentSceneMissingItems.eventIds.length} 段五月记忆没翻到，要现在离开吗？`,
+        ],
         options: [
           { id: 'stay-scene', text: '继续逛逛' },
           { id: 'return-route', text: '返回路线图' },
@@ -221,6 +260,11 @@ export default function App() {
       });
       return;
     }
+    debugLog('return-check-pass', {
+      status: currentSceneProgress.mainComplete ? 'main-complete' : 'forced-or-not-scene',
+      missing: currentSceneMissingItems,
+      progress: currentSceneProgress,
+    });
     doReturnToRoute();
   };
 
@@ -246,12 +290,6 @@ export default function App() {
       .filter((target) => target.d <= INTERACT_DISTANCE)
       .sort((a, b) => a.d - b.d)[0];
     if (npcTarget) return npcTarget;
-    if (currentScene.id === 'store' && owenStallVisible && distance(playerPosition, { x: 320, y: 408 }) <= INTERACT_DISTANCE) {
-      return { type: 'owen', npc: { ...owenNpc, x: 320, y: 408 }, label: '按空格互动 / 点击互动' };
-    }
-    if (currentScene.id === 'store' && !owenStallVisible && distance(playerPosition, { x: 348, y: 442 }) <= 52) {
-      return { type: 'lamp', label: `点击互动：不起眼的小灯 ${lampClickCount}/5` };
-    }
     const eggTarget = sceneEasterEggs
       .map((egg) => ({ type: 'easter', egg, label: `可互动：${egg.label}`, d: distance(playerPosition, egg) }))
       .filter((target) => target.d <= INTERACT_DISTANCE)
@@ -261,13 +299,9 @@ export default function App() {
       .map((event) => ({ type: 'event', event, label: `可互动：${event.label}`, d: distance(playerPosition, event) }))
       .filter((target) => target.d <= INTERACT_DISTANCE)
       .sort((a, b) => a.d - b.d)[0] || null;
-  }, [currentScene, lampClickCount, owenStallVisible, playerPosition, sceneEasterEggs, sceneNpcs, screen]);
+  }, [currentScene, playerPosition, sceneEasterEggs, sceneNpcs, screen]);
 
-  const sceneDone = useMemo(() => {
-    const npcDone = currentScene.npcs.every((npc) => completedInteractionIds.includes(npc.id) || !npcInteractions[npc.id]);
-    const eventDone = currentScene.events.every((event) => triggeredEvents.includes(event.id));
-    return npcDone && eventDone;
-  }, [completedInteractionIds, currentScene, triggeredEvents]);
+  const sceneDone = useMemo(() => currentSceneProgress.mainComplete, [currentSceneProgress.mainComplete]);
 
   useEffect(() => {
     if (screen === 'scene' && sceneDone) {
@@ -295,6 +329,16 @@ export default function App() {
     setTalkedNpcIds((current) => addUnique(current, npc.id));
     const interaction = npcInteractions[npc.id];
     if (!interaction) {
+      const alreadyCompleted = completedInteractionIds.includes(npc.id);
+      if (!alreadyCompleted) {
+        setCompletedInteractionIds((current) => addUnique(current, npc.id));
+        if (npc.fragment) addFragment(npc.fragment);
+      }
+      debugLog('npc-simple-complete', {
+        npcId: npc.id,
+        status: alreadyCompleted ? 'already-completed' : 'completed',
+        writeKey: npc.id,
+      });
       setDialog({ speaker: `${npc.name} · ${npc.roleTitle}`, lines: [npc.dialogue] });
       return;
     }
@@ -308,7 +352,7 @@ export default function App() {
       return;
     }
     openInteraction(npc.id, interaction, `${npc.name} · ${npc.roleTitle}`);
-  }, [completedInteractionIds, findEasterEgg, foundEasterEggIds]);
+  }, [addFragment, completedInteractionIds, debugLog, findEasterEgg, foundEasterEggIds]);
 
   const interactWithEvent = useCallback((event) => {
     const interaction = eventInteractions[event.id];
@@ -330,43 +374,12 @@ export default function App() {
     });
   }, [addFragment, completedInteractionIds, triggeredEvents]);
 
-  const interactWithLamp = useCallback(() => {
-    if (owenStallVisible) return;
-    setLampClickCount((count) => {
-      const next = count + 1;
-      if (next >= 5) {
-        setOwenStallVisible(true);
-        setOwenEasterEggFound(true);
-        showToast('角落亮起了：今晚也营业的小摊');
-        return 0;
-      }
-      showToast(`小灯轻轻闪了一下：${next}/5`);
-      return next;
-    });
-  }, [owenStallVisible, showToast]);
-
-  const openOwenDialog = useCallback(() => {
-    setOwenEasterEggFound(true);
-    setDialog({
-      speaker: '今晚也营业的小摊',
-      lines: ['路过就坐一会儿吧。', '今天没安排也没关系，灯还亮着。', '想喝点什么？这杯算小摊请你。'],
-      options: [
-        { id: 'milk-tea', text: '要一杯奶茶' },
-        { id: 'note', text: '拿一张便签' },
-        { id: 'birthday', text: '问他今天为什么摆摊' },
-        { id: 'leave', text: '继续夜游' },
-      ],
-    });
-  }, []);
-
   const interact = useCallback(() => {
     if (dialog || activeInteraction || !nearbyTarget) return;
     if (nearbyTarget.type === 'npc') interactWithNpc(nearbyTarget.npc);
     if (nearbyTarget.type === 'event') interactWithEvent(nearbyTarget.event);
-    if (nearbyTarget.type === 'lamp') interactWithLamp();
     if (nearbyTarget.type === 'easter') findEasterEgg(nearbyTarget.egg.id);
-    if (nearbyTarget.type === 'owen') openOwenDialog();
-  }, [activeInteraction, dialog, findEasterEgg, interactWithEvent, interactWithLamp, interactWithNpc, nearbyTarget, openOwenDialog]);
+  }, [activeInteraction, dialog, findEasterEgg, interactWithEvent, interactWithNpc, nearbyTarget]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -411,7 +424,7 @@ export default function App() {
     }
     if (optionId === 'birthday') {
       setOwenBirthdayHintSeen(true);
-      findEasterEgg('owen-birthday');
+      findEasterEgg('owen_hidden_birthday');
       setDialog({ speaker: '奶茶鼠欧文', lines: ['其实今天也是我的生日。', '但我只是顺手把小摊开着。', '520这天，路过的人很多。', '总有人需要一盏灯，或者一杯热的。', '隐藏记录：发现一个很小的生日彩蛋'] });
     }
     if (optionId === 'leave') {
@@ -433,9 +446,21 @@ export default function App() {
     if (pendingInteractionId.startsWith('event:')) {
       const eventId = pendingInteractionId.replace('event:', '');
       setTriggeredEvents((current) => addUnique(current, eventId));
+      debugLog('event-complete', {
+        eventId,
+        writeKey: eventId,
+        fragment: result.fragment,
+        memory: result.memory,
+      });
     } else {
       setCompletedInteractionIds((current) => addUnique(current, pendingInteractionId));
       setTalkedNpcIds((current) => addUnique(current, pendingInteractionId));
+      debugLog('npc-minigame-complete', {
+        npcId: pendingInteractionId,
+        writeKey: pendingInteractionId,
+        fragment: result.fragment,
+        memory: result.memory,
+      });
       if (pendingInteractionId === 'store-message') findEasterEgg('group-99');
     }
     setCompletedInteractionIds((current) => addUnique(current, pendingInteractionId));
@@ -488,9 +513,7 @@ export default function App() {
     setToast('');
     setCopied(false);
     setEndingGenerated(false);
-    setLampClickCount(0);
     setOwenEasterEggFound(false);
-    setOwenStallVisible(false);
     setOwenNoteTaken(false);
     setOwenBirthdayHintSeen(false);
   };
@@ -559,16 +582,12 @@ export default function App() {
             sceneNpcs={sceneNpcs}
             sceneEasterEggs={sceneEasterEggs}
             currentSceneProgress={currentSceneProgress}
-            owenNpc={{ ...owenNpc, x: 320, y: 408 }}
-            owenStallVisible={owenStallVisible}
             playerPosition={playerPosition}
             talkedNpcIds={talkedNpcIds}
             completedInteractionIds={completedInteractionIds}
             triggeredEvents={triggeredEvents}
             foundEasterEggIds={foundEasterEggIds}
             nearbyTarget={nearbyTarget}
-            lampClickCount={lampClickCount}
-            onLampClick={interactWithLamp}
           />
           <div className="map-status">
             <p>{nearbyTarget ? nearbyTarget.label : (idleHintVisible || currentSceneProgress.mainComplete ? sceneNudge : getGuideText({
@@ -579,6 +598,7 @@ export default function App() {
             collectedFragments,
             visitedLocations,
           }))}</p>
+            <small>{sceneCompletionHint}</small>
             <small>{reportProgressHint}</small>
           </div>
           <MobileControls onMove={movePlayer} onInteract={interact} canInteract={Boolean(nearbyTarget)} />
@@ -616,6 +636,14 @@ export default function App() {
             <dd>{currentSceneProgress.mainDone}/{currentSceneProgress.mainTotal} ({currentSceneProgress.mainProgressPercent}%)</dd>
             <dt>scene full progress</dt>
             <dd>{currentSceneProgress.fullDone}/{currentSceneProgress.fullTotal} ({currentSceneProgress.fullProgressPercent}%)</dd>
+            <dt>scene missing required NPCs</dt>
+            <dd>{currentSceneMissingItems.npcIds.join(', ') || '-'}</dd>
+            <dt>scene missing optional NPCs</dt>
+            <dd>{currentSceneMissingItems.optionalNpcIds.join(', ') || '-'}</dd>
+            <dt>scene missing events</dt>
+            <dd>{currentSceneMissingItems.eventIds.join(', ') || '-'}</dd>
+            <dt>scene missing easter eggs</dt>
+            <dd>{currentSceneMissingItems.easterEggIds.join(', ') || '-'}</dd>
             <dt>canGenerateReport</dt>
             <dd>{canGenerateReport ? 'true' : 'false'}</dd>
           </dl>

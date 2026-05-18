@@ -1,4 +1,4 @@
-import { defaultReminder } from '../data/npcData.js';
+﻿import { defaultReminder } from '../data/npcData.js';
 
 function TextList({ items, fallback, limit }) {
   if (!items.length) return fallback;
@@ -18,6 +18,7 @@ function ReportSection({ icon, title, children }) {
 
 export default function ResultCard({ result, onRestart, onCopy, copied }) {
   const showHidden = result.owenEasterEggFound || result.owenNoteTaken || result.owenBirthdayHintSeen;
+  const showStallBirthday = result.foundEasterEggIds?.includes('owen_hidden_birthday');
 
   return (
     <section className="result-card type-in">
@@ -60,8 +61,10 @@ export default function ResultCard({ result, onRestart, onCopy, copied }) {
           {result.judgement}
         </ReportSection>
         {showHidden && (
-          <ReportSection icon="◇" title="隐藏彩蛋">
-            你路过了“今晚也营业的小摊”。有人把生日藏得很轻，只留下一杯热的和一盏灯。
+          <ReportSection icon="*" title="隐藏彩蛋">
+            {showStallBirthday
+              ? '藏在小摊后的生日。有人把生日藏得很轻，只留下一盏灯和一串热的。'
+              : '你路过了今晚也营业的小摊。有人把生日藏得很轻，只留下一杯热的和一盏灯。'}
           </ReportSection>
         )}
       </dl>

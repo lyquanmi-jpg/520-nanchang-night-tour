@@ -1885,6 +1885,7 @@ h2 {
 .route-icon-pool { background: #1fa97c; box-shadow: inset 0 12px 0 #6d4734; }
 .route-icon-camp { background: #35d6b6; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 .route-icon-store { background: repeating-linear-gradient(180deg, #35d6b6 0 10px, #fff7d2 10px 20px, #3a79ff 20px 30px); }
+.route-icon-stall { background: #ff7a69; box-shadow: inset 0 10px 0 #ffd36d, 0 0 14px rgba(255, 211, 109, 0.42); }
 
 .route-card strong {
   display: block;

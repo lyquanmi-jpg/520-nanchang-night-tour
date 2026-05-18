@@ -1,4 +1,4 @@
-export const SCENE_SIZE = {
+﻿export const SCENE_SIZE = {
   width: 390,
   height: 520,
 };
@@ -125,6 +125,23 @@ export const scenes = [
       { id: '便利店补给', x: 294, y: 226, fragment: '一杯温热的饮料', label: '热饮柜' },
     ],
   },
+  {
+    id: 'owen_stall',
+    name: 'Owen 的烧烤小摊',
+    subtitle: '路过就坐一会儿，烤串还热着',
+    cta: '去等一串刚好的烤肉',
+    mood: '夜宵小摊线',
+    backgroundType: 'stall',
+    entryText: '你走到一盏暖黄色的小摊灯下面。烤架上有一点烟，旁边摆着几把小凳子。',
+    npcs: [
+      { id: 'owen_stall_owner', x: 178, y: 330 },
+      { id: 'late_guest', x: 292, y: 350 },
+    ],
+    events: [
+      { id: 'event_520_stall_night', x: 96, y: 330, fragment: '一把小凳子', label: '小摊边坐一会儿' },
+      { id: 'event_stall_light', x: 288, y: 180, fragment: '一盏小摊灯', label: '小摊灯' },
+    ],
+  },
 ];
 
 export const sceneById = Object.fromEntries(scenes.map((scene) => [scene.id, scene]));
@@ -183,7 +200,15 @@ export const sceneProgressMeta = {
     optionalNpcIds: [],
     eventIds: ['5.15 看电影', '便利店补给'],
     mainFragmentIds: [],
-    easterEggIds: ['store-receipt', 'group-99', 'owen-birthday'],
+    easterEggIds: ['store-receipt', 'group-99', 'store-small-lamp'],
     completionHint: '便利店的收银台、小票和角落小灯，都亮得很认真。',
+  },
+  owen_stall: {
+    requiredNpcIds: ['owen_stall_owner'],
+    optionalNpcIds: ['late_guest'],
+    eventIds: ['event_520_stall_night', 'event_stall_light'],
+    mainFragmentIds: ['一串刚好的烤肉', '一把小凳子', '一盏小摊灯'],
+    easterEggIds: ['owen_hidden_birthday', 'stall_note', 'extra_chair'],
+    completionHint: '小摊的灯、凳子和便签，都可以再靠近看看。',
   },
 };

@@ -1,4 +1,4 @@
-import { SCENE_SIZE } from '../data/scenes.js';
+﻿import { SCENE_SIZE } from '../data/scenes.js';
 import NPCSprite from './NPCSprite.jsx';
 import Player from './Player.jsx';
 
@@ -74,6 +74,17 @@ function SceneDecor({ type }) {
           <div className="scene-vending" />
         </>
       )}
+      {type === 'stall' && (
+        <>
+          <div className="scene-bbq-cart" />
+          <div className="scene-grill" />
+          <div className="scene-smoke smoke-left" />
+          <div className="scene-smoke smoke-right" />
+          <div className="scene-stool stool-left" />
+          <div className="scene-stool stool-right" />
+          <div className="scene-lamp lamp-right" />
+        </>
+      )}
     </div>
   );
 }
@@ -95,16 +106,12 @@ export default function GameMap({
   sceneNpcs,
   sceneEasterEggs,
   currentSceneProgress,
-  owenNpc,
-  owenStallVisible,
   playerPosition,
   talkedNpcIds,
   completedInteractionIds,
   triggeredEvents,
   foundEasterEggIds,
   nearbyTarget,
-  lampClickCount,
-  onLampClick,
 }) {
   return (
     <div className="scene-viewport">
@@ -144,29 +151,10 @@ export default function GameMap({
         {sceneNpcs.map((npc) => (
           <NPCSprite key={npc.id} npc={npc} talked={talkedNpcIds.includes(npc.id)} completed={completedInteractionIds.includes(npc.id)} />
         ))}
-        {scene.id === 'store' && (
-          <button
-            className={`hidden-lamp scene-hidden-lamp pixel-press ${lampClickCount > 0 ? 'awake' : ''}`}
-            type="button"
-            style={{ left: 348, top: 442 }}
-            onClick={onLampClick}
-            aria-label={`不起眼的小灯，已点击 ${lampClickCount} 次`}
-          />
-        )}
-        {scene.id === 'store' && owenStallVisible && (
-          <div className="scene-owen-stall" style={{ left: 272, top: 392 }}>
-            <span className="stall-light" />
-            <span className="stall-counter" />
-            <span className="stall-cup" />
-            <span className="stall-cake" />
-            <b>今晚也营业的小摊</b>
-          </div>
-        )}
-        {scene.id === 'store' && owenStallVisible && <NPCSprite npc={owenNpc} talked={false} />}
         <Player position={playerPosition} alert={Boolean(nearbyTarget)} />
         {nearbyTarget && (
           <div className="nearby-hint">
-            {nearbyTarget.type === 'npc' || nearbyTarget.type === 'owen'
+            {nearbyTarget.type === 'npc'
               ? '按空格互动 / 点击互动'
               : nearbyTarget.label}
           </div>

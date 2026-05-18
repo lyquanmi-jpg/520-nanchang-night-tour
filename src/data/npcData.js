@@ -1,4 +1,4 @@
-export const npcs = [
+﻿export const npcs = [
   { id: 'xiaomeng', name: '小梦', locationId: 'river', visual: 'poet', tags: ['梦幻', '文艺'], profession: '滕王阁诗词社社长', roleTitle: '江边散步搭子', fragment: '一张晚风便签', dialogue: '今天不一定要牵手，吹吹晚风也算认真过完一天。', repeatDialogue: '江风还在，慢慢走就好。' },
   { id: 'hongjie', name: '红姐', locationId: 'river', visual: 'camera', tags: ['抓拍', '细节控'], profession: '赣江边首席摄影师', roleTitle: '晚风记录员', fragment: '一张没有发朋友圈的照片', dialogue: '一个人走也有画面感，群友的镜头会记得你今晚来过。', repeatDialogue: '别急，今晚的光线挺温柔。' },
   { id: 'jie', name: '洁小姐', locationId: 'river', visual: 'travel', tags: ['旅游', '自由'], profession: '南昌旅行生活方式博主', roleTitle: '城市漫游搭子', fragment: '一张城市漫游车票', dialogue: '不出远门也算旅行，今晚从江边开始就很好。', repeatDialogue: '南昌的小路会把人带到亮灯的地方。' },
@@ -13,6 +13,8 @@ export const npcs = [
   { id: 'chunxia', name: '春夏', locationId: 'camp', visual: 'badminton', tags: ['动感', '运动回血'], profession: '红谷滩体育馆羽球达人', roleTitle: '露营热身搭子', fragment: '一颗被捡回来的羽毛球', dialogue: '椅子多摆一把，总有人会坐下来。', repeatDialogue: '火还亮着，位置也还在。' },
   { id: 'gezi', name: '鸽子哥', locationId: 'camp', visual: 'shuttle', tags: ['运动', '放鸽子'], profession: '八一体育馆羽毛球教练', roleTitle: '准时到场搭子', fragment: '一个没说出口的邀约', dialogue: '今天不鸽。就算只是坐会儿，也算到场。', repeatDialogue: '今晚我真没鸽。' },
   { id: 'store-message', name: '群聊', locationId: 'store', visual: 'phone', tags: ['补给', '群聊'], profession: '深夜便利店置顶消息', roleTitle: '城市小灯', fragment: '一条群聊消息', dialogue: '便利店的灯亮着，群聊也还没睡。', repeatDialogue: '买瓶水吧，夜路慢慢走。' },
+  { id: 'owen_stall_owner', name: 'Owen', locationId: 'owen_stall', visual: 'owen', tags: ['夜宵', '小摊'], profession: 'Owen 的烧烤小摊摊主', roleTitle: '烧烤小摊摊主', route: '夜宵小摊线', fragment: '一串刚好的烤肉', dialogue: '路过就坐一会儿吧。今天没安排也没关系，烤串还热着。', dialogueMeet: '路过就坐一会儿吧。今天没安排也没关系，烤串还热着。', dialogueComfort: '如果不知道去哪，就先在小摊边坐几分钟。人有时候不一定需要答案，先吃点热的也行。', gift: '一串刚好的烤肉', endingTitle: '路过小摊的人', repeatDialogue: 'Owen 把火调小了一点：慢慢吃，不赶时间。' },
+  { id: 'late_guest', name: '晚来的群友', locationId: 'owen_stall', visual: 'mic', tags: ['迟到', '路过'], profession: '总说快到了的人', roleTitle: '总说快到了的人', fragment: '一句快到了', dialogue: '我说快到了，其实刚出门。但你看，最后还是有人会来。', repeatDialogue: '晚来的群友挪了挪小凳子：我真快到了，这次是真的。' },
 ];
 
 export const owenNpc = {

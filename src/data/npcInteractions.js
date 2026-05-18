@@ -1,4 +1,4 @@
-export const npcInteractions = {
+﻿export const npcInteractions = {
   hongjie: {
     title: '红姐的江边抓拍',
     intro: [
@@ -226,6 +226,24 @@ export const npcInteractions = {
     },
     afterComplete: '手柄还热着，下一把可以继续摆烂。',
   },
+  owen_stall_owner: {
+    title: 'Owen 的烤串火候',
+    intro: ['Owen 把一把竹签放到烤架旁。', '他说：路过就坐一会儿吧，烤串刚好还热着。'],
+    choices: [{ id: 'skewer', text: '帮忙看一下火候' }],
+    miniGame: {
+      type: 'tapRhythm',
+      title: 'Owen 的烤串火候',
+      instruction: '按顺序点击：翻面、撒料、递给路过的人。',
+      sequence: ['翻面', '撒料', '递给路过的人'],
+      successText: 'Owen 把烤串递给你：这串刚好，趁热。小摊灯亮着的时候，路过的人都算有位置。',
+      failText: '这串有点焦。Owen 看了一眼，把焦的那串留给自己，又递给你一串新的：没事，今晚不讲完美。',
+    },
+    reward: {
+      fragment: '一串刚好的烤肉',
+      memory: '你在 Owen 的小摊前等到了一串刚好的烤肉。',
+    },
+    afterComplete: 'Owen 把火调小了一点：慢慢吃，不赶时间。',
+  },
 };
 
 export const eventInteractions = {
@@ -248,4 +266,19 @@ export const eventInteractions = {
     },
     afterComplete: '热饮柜还亮着，像在说慢点回家。',
   },
-};
+  event_520_stall_night: {
+    title: '小摊灯下坐一会儿',
+    intro: ['小摊边有一把空着的小凳子。', '烤架的烟慢慢往上走，像有人把今晚按了暂停。'],
+    choices: [{ id: 'sit', text: '坐一会儿' }],
+    miniGame: {
+      type: 'warmText',
+      title: '小摊边的几分钟',
+      instruction: '不用做什么，坐一会儿就好。',
+      successText: '小凳子空着一把，像是默认会有人路过坐下。',
+    },
+    reward: {
+      fragment: '一把小凳子',
+      memory: '你在 Owen 的小摊边坐了一会儿。',
+    },
+    afterComplete: '那把小凳子还在，像是给下一个路过的人留着。',
+  },};

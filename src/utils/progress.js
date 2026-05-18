@@ -11,45 +11,72 @@ function percent(done, total) {
   return Math.round((done / total) * 100);
 }
 
-function sceneNpcIds(scene) {
-  const meta = sceneProgressMeta[scene.id] || {};
-  return unique([...(scene.requiredNpcIds || meta.requiredNpcIds || []), ...(scene.optionalNpcIds || meta.optionalNpcIds || scene.npcs.map((npc) => npc.id))]);
+function metaFor(scene) {
+  return sceneProgressMeta[scene.id] || {};
 }
 
-function sceneEventIds(scene) {
-  const meta = sceneProgressMeta[scene.id] || {};
+export function getRequiredNpcIds(scene) {
+  const meta = metaFor(scene);
+  return unique(scene.requiredNpcIds || meta.requiredNpcIds || scene.npcs.map((npc) => npc.id));
+}
+
+export function getOptionalNpcIds(scene) {
+  const meta = metaFor(scene);
+  return unique(scene.optionalNpcIds || meta.optionalNpcIds || []);
+}
+
+export function getAllSceneNpcIds(scene) {
+  return unique([...getRequiredNpcIds(scene), ...getOptionalNpcIds(scene)]);
+}
+
+function getSceneEventIds(scene) {
+  const meta = metaFor(scene);
   return scene.eventIds || meta.eventIds || scene.events.map((event) => event.id);
 }
 
-function sceneMainFragments(scene) {
-  const meta = sceneProgressMeta[scene.id] || {};
-  const npcFragments = sceneNpcIds(scene).map((id) => npcInteractions[id]?.reward.fragment);
+function getSceneMainFragments(scene) {
+  const meta = metaFor(scene);
+  const npcFragments = getRequiredNpcIds(scene).map((id) => npcInteractions[id]?.reward.fragment);
   const eventFragments = scene.events.map((event) => eventInteractions[event.id]?.reward.fragment || event.fragment);
   return unique([...(scene.mainFragmentIds || meta.mainFragmentIds || []), ...npcFragments, ...eventFragments]);
 }
 
-export function getSceneProgress(scene, gameState) {
-  const npcIds = sceneNpcIds(scene);
-  const eventIds = sceneEventIds(scene);
-  const fragmentIds = sceneMainFragments(scene);
-  const meta = sceneProgressMeta[scene.id] || {};
-  const eggIds = scene.easterEggIds || meta.easterEggIds || easterEggs.filter((egg) => egg.sceneId === scene.id).map((egg) => egg.id);
+function getSceneEasterEggIds(scene) {
+  const meta = metaFor(scene);
+  return scene.easterEggIds || meta.easterEggIds || easterEggs.filter((egg) => egg.sceneId === scene.id).map((egg) => egg.id);
+}
 
-  const npcCompleted = npcIds.filter((id) => gameState.completedInteractionIds.includes(id)).length;
+export function getSceneProgress(scene, gameState) {
+  const requiredNpcIds = getRequiredNpcIds(scene);
+  const optionalNpcIds = getOptionalNpcIds(scene);
+  const allNpcIds = getAllSceneNpcIds(scene);
+  const eventIds = getSceneEventIds(scene);
+  const fragmentIds = getSceneMainFragments(scene);
+  const eggIds = getSceneEasterEggIds(scene);
+
+  const npcCompleted = requiredNpcIds.filter((id) => gameState.completedInteractionIds.includes(id)).length;
+  const optionalNpcCompleted = optionalNpcIds.filter((id) => gameState.completedInteractionIds.includes(id)).length;
+  const allNpcCompleted = allNpcIds.filter((id) => gameState.completedInteractionIds.includes(id)).length;
   const eventsCompleted = eventIds.filter((id) => gameState.triggeredEvents.includes(id)).length;
   const fragmentsCollected = fragmentIds.filter((fragment) => gameState.collectedFragments.includes(fragment)).length;
   const easterEggsFound = eggIds.filter((id) => gameState.foundEasterEggIds.includes(id)).length;
 
   const mainDone = npcCompleted + eventsCompleted + fragmentsCollected;
-  const mainTotal = npcIds.length + eventIds.length + fragmentIds.length;
-  const fullDone = mainDone + easterEggsFound;
-  const fullTotal = mainTotal + eggIds.length;
+  const mainTotal = requiredNpcIds.length + eventIds.length + fragmentIds.length;
+  const optionalDone = optionalNpcCompleted;
+  const optionalTotal = optionalNpcIds.length;
+  const fullDone = mainDone + optionalDone + easterEggsFound;
+  const fullTotal = mainTotal + optionalTotal + eggIds.length;
 
   return {
     sceneId: scene.id,
     visited: gameState.visitedLocations.includes(scene.id),
     npcCompleted,
-    npcTotal: npcIds.length,
+    npcTotal: requiredNpcIds.length,
+    optionalNpcCompleted,
+    optionalNpcTotal: optionalNpcIds.length,
+    allNpcCompleted,
+    allNpcTotal: allNpcIds.length,
     eventsCompleted,
     eventsTotal: eventIds.length,
     fragmentsCollected,
@@ -58,6 +85,8 @@ export function getSceneProgress(scene, gameState) {
     easterEggsTotal: eggIds.length,
     mainDone,
     mainTotal,
+    optionalDone,
+    optionalTotal,
     fullDone,
     fullTotal,
     mainProgressPercent: percent(mainDone, mainTotal),
@@ -68,16 +97,17 @@ export function getSceneProgress(scene, gameState) {
 }
 
 export function getSceneMissingItems(scene, gameState) {
-  const npcIds = sceneNpcIds(scene);
-  const eventIds = sceneEventIds(scene);
-  const fragments = sceneMainFragments(scene);
-  const meta = sceneProgressMeta[scene.id] || {};
-  const eggIds = scene.easterEggIds || meta.easterEggIds || easterEggs.filter((egg) => egg.sceneId === scene.id).map((egg) => egg.id);
+  const requiredNpcIds = getRequiredNpcIds(scene);
+  const optionalNpcIds = getOptionalNpcIds(scene);
+  const eventIds = getSceneEventIds(scene);
+  const fragmentIds = getSceneMainFragments(scene);
+  const eggIds = getSceneEasterEggIds(scene);
 
   return {
-    npcIds: npcIds.filter((id) => !gameState.completedInteractionIds.includes(id)),
+    npcIds: requiredNpcIds.filter((id) => !gameState.completedInteractionIds.includes(id)),
+    optionalNpcIds: optionalNpcIds.filter((id) => !gameState.completedInteractionIds.includes(id)),
     eventIds: eventIds.filter((id) => !gameState.triggeredEvents.includes(id)),
-    fragments: fragments.filter((fragment) => !gameState.collectedFragments.includes(fragment)),
+    fragments: fragmentIds.filter((fragment) => !gameState.collectedFragments.includes(fragment)),
     easterEggIds: eggIds.filter((id) => !gameState.foundEasterEggIds.includes(id)),
   };
 }
@@ -126,8 +156,8 @@ export function getNextRecommendedScene(scenes, gameState) {
     return {
       scene: withEggs?.scene || null,
       text: withEggs
-        ? `你已经可以生成夜游报告了。如果还想多走走，${withEggs.scene.name}好像还有一点小光。`
-        : '你已经可以生成夜游报告了，也可以继续慢慢走。'
+        ? `你已经可以生成夜游报告了。如果还想多走走，${withEggs.scene.name}还有彩蛋可以找。`
+        : '你已经可以生成夜游报告了，也可以继续慢慢走。',
     };
   }
 
@@ -143,7 +173,7 @@ export function getNextRecommendedScene(scenes, gameState) {
   const missingCount = target.missing.npcIds.length + target.missing.eventIds.length + target.missing.fragments.length;
   return {
     scene: target.scene,
-    text: `先去${target.scene.name}看看，那里还有 ${missingCount || 1} 个夜晚小事没收好。`,
+    text: `先去${target.scene.name}看看，那里还有 ${missingCount || 1} 个主流程小事没收好。`,
   };
 }
 
@@ -151,9 +181,9 @@ export function getSceneNudge(scene, gameState) {
   const missing = getSceneMissingItems(scene, gameState);
   const progress = getSceneProgress(scene, gameState);
 
-  if (missing.npcIds.length) return '这个地方好像还有人想和你说句话。';
-  if (missing.eventIds.length) return '这里有一段五月的记忆，还没被你翻到。';
-  if (progress.mainComplete && missing.easterEggIds.length) return '主要的事已经收好了，角落里也许还藏着一点小光。';
-  if (progress.mainComplete) return '这个地方的主要记忆已经被你收好了，可以去下一站看看。';
-  return scene.completionHint || sceneProgressMeta[scene.id]?.completionHint || '靠近亮着的人或物件，按互动键看看。';
+  if (missing.npcIds.length) return `这里还有 ${missing.npcIds.length} 位主线群友没聊完。`;
+  if (missing.eventIds.length) return `这里还有 ${missing.eventIds.length} 段五月记忆没翻到。`;
+  if (progress.mainComplete && missing.easterEggIds.length) return `主流程已完成，可退出地图。当前仍有 ${missing.easterEggIds.length} 个彩蛋未发现，可继续探索。`;
+  if (progress.mainComplete) return '主流程已完成，可退出地图。这盏灯已经被你点亮。';
+  return scene.completionHint || metaFor(scene).completionHint || '靠近亮着的人或物件，按互动键看看。';
 }
