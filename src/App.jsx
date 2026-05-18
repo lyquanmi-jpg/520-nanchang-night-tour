@@ -78,10 +78,10 @@ function getFinalJudgement(memoryCount, eggCount) {
 function getGuideText({ currentSceneId, talkedNpcIds, collectedMemories, foundEasterEggIds, collectedFragments, visitedLocations }) {
   if (collectedFragments.length >= 6) return '你已经可以生成夜游报告，也可以继续找找彩蛋。';
   if (currentSceneId === 'store') return '便利店角落有一盏很小的灯，亮得有点认真。';
+  if (foundEasterEggIds.length < 3 && visitedLocations.length >= 3) return '有些彩蛋藏在二次对话和不起眼的物件里。';
   if (foundEasterEggIds.length > 0) return '角落里的灯、椅子和小票，也可能藏着今晚的碎片。';
   if (collectedMemories.length > 0) return '再聊一次，也许会有新的话。';
   if (talkedNpcIds.length > 0) return '有些人会陪你做一件小事。';
-  if (foundEasterEggIds.length < 3 && visitedLocations.length >= 3) return '有些彩蛋藏在二次对话和不起眼的物件里。';
   return '慢慢走，靠近亮着的地方，按互动键看看。';
 }
 
@@ -248,7 +248,7 @@ export default function App() {
     }
     if (completedInteractionIds.includes(npc.id)) {
       const repeatEgg = easterEggs.find((egg) => egg.type === 'npc-repeat' && egg.npcId === npc.id);
-      if (repeatEgg) {
+      if (repeatEgg && !foundEasterEggIds.includes(repeatEgg.id)) {
         findEasterEgg(repeatEgg.id);
         return;
       }
@@ -256,7 +256,7 @@ export default function App() {
       return;
     }
     openInteraction(npc.id, interaction, `${npc.name} · ${npc.roleTitle}`);
-  }, [completedInteractionIds]);
+  }, [completedInteractionIds, findEasterEgg, foundEasterEggIds]);
 
   const interactWithEvent = useCallback((event) => {
     const interaction = eventInteractions[event.id];
@@ -372,10 +372,10 @@ export default function App() {
     if (pendingInteractionId.startsWith('event:')) {
       const eventId = pendingInteractionId.replace('event:', '');
       setTriggeredEvents((current) => addUnique(current, eventId));
-      if (eventId === '5.15 看电影') findEasterEgg('group-99');
     } else {
       setCompletedInteractionIds((current) => addUnique(current, pendingInteractionId));
       setTalkedNpcIds((current) => addUnique(current, pendingInteractionId));
+      if (pendingInteractionId === 'store-message') findEasterEgg('group-99');
     }
     setCompletedInteractionIds((current) => addUnique(current, pendingInteractionId));
     setActiveInteraction(null);
