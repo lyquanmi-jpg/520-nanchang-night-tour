@@ -128,3 +128,62 @@ export const scenes = [
 ];
 
 export const sceneById = Object.fromEntries(scenes.map((scene) => [scene.id, scene]));
+
+export const sceneProgressMeta = {
+  river: {
+    requiredNpcIds: ['xiaomeng', 'hongjie'],
+    optionalNpcIds: ['jie'],
+    eventIds: ['5.9 江边露营', '5.1 宁波舟山'],
+    mainFragmentIds: [],
+    easterEggIds: ['river-bench', 'river-railing', 'xiaomeng-unsent', 'hongjie-photo'],
+    completionHint: '江边的晚风、长椅和栏杆，都值得再靠近看看。',
+  },
+  wanshougong: {
+    requiredNpcIds: ['sansan', 'baimao'],
+    optionalNpcIds: ['bob'],
+    eventIds: ['5.2 万寿宫浪浪山', '5.2 福旺财南京老鸭泡粉'],
+    mainFragmentIds: [],
+    easterEggIds: ['wsg-lantern', 'baimao-good-skewer'],
+    completionHint: '万寿宫的灯笼和热气还亮着，慢慢靠近看看。',
+  },
+  ktv: {
+    requiredNpcIds: ['aq', 'vjie'],
+    optionalNpcIds: ['qingzhi'],
+    eventIds: ['5.6 糖K', '5.17 糖K+阳阳生日'],
+    mainFragmentIds: [],
+    easterEggIds: ['ktv-poster'],
+    completionHint: 'KTV门口还有声音，海报和灯箱都可以多看一眼。',
+  },
+  bbq: {
+    requiredNpcIds: ['baimao'],
+    optionalNpcIds: ['sansan'],
+    eventIds: ['5.9 小马哥家烧烤', '5.6 干饭+酒馆'],
+    mainFragmentIds: [],
+    easterEggIds: ['baimao-good-skewer'],
+    completionHint: '烤架旁还有热气，等一等也许刚好出炉。',
+  },
+  pool: {
+    requiredNpcIds: ['taozhi', 'laozhu'],
+    optionalNpcIds: [],
+    eventIds: ['5.2 NC台球', '5.10 九龙湖桌游'],
+    mainFragmentIds: [],
+    easterEggIds: ['pool-last-ball'],
+    completionHint: '台球厅的灯还照着桌面，最后一颗球可以再看一眼。',
+  },
+  camp: {
+    requiredNpcIds: ['chunxia', 'gezi'],
+    optionalNpcIds: [],
+    eventIds: ['5.16 方家村露营', '5.1 萧峰鼎露营'],
+    mainFragmentIds: [],
+    easterEggIds: ['camp-empty-chair'],
+    completionHint: '露营地的火还没灭，那把空椅子也还在。',
+  },
+  store: {
+    requiredNpcIds: ['store-message'],
+    optionalNpcIds: [],
+    eventIds: ['5.15 看电影', '便利店补给'],
+    mainFragmentIds: [],
+    easterEggIds: ['store-receipt', 'group-99', 'owen-birthday'],
+    completionHint: '便利店的收银台、小票和角落小灯，都亮得很认真。',
+  },
+};

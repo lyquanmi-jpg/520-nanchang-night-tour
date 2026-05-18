@@ -12,6 +12,13 @@ import { npcs, owenNpc } from './data/npcData.js';
 import { EASTER_EGG_TOTAL, easterEggById, easterEggs } from './data/easterEggs.js';
 import { eventInteractions, npcInteractions } from './data/npcInteractions.js';
 import { SCENE_SIZE, sceneById, scenes } from './data/scenes.js';
+import {
+  getNextRecommendedScene,
+  getOverallProgress,
+  getReportProgressHint,
+  getSceneNudge,
+  getSceneProgress,
+} from './utils/progress.js';
 
 const STEP = 22;
 const INTERACT_DISTANCE = 48;
@@ -48,6 +55,7 @@ function buildCopyText(result) {
     `你和大家做过的小事：${result.collectedMemories.join('、') || '还没有和大家多做什么，但今晚还有很多站可以慢慢走。'}`,
     `你发现的夜游彩蛋：${result.foundEasterEggNames.join('、') || '你还没发现隐藏彩蛋，但今晚已经走得很好。'}`,
     `你触发的五月记忆：${result.triggeredEvents.join('、') || '还没翻到旧存档，下一条路也许会遇见。'}`,
+    `今晚探索度：主线 ${result.overallProgress?.mainProgressPercent || 0}% / 彩蛋 ${result.foundEasterEggNames.length}/${EASTER_EGG_TOTAL} / 点亮地点 ${result.overallProgress?.litScenes || 0}/${result.overallProgress?.sceneTotal || scenes.length}`,
     `今晚判定：${result.judgement}`,
   ];
 
@@ -97,9 +105,11 @@ export default function App() {
   const [foundEasterEggIds, setFoundEasterEggIds] = useState([]);
   const [triggeredEvents, setTriggeredEvents] = useState([]);
   const [dialog, setDialog] = useState(null);
+  const [pendingRouteReturn, setPendingRouteReturn] = useState(false);
   const [activeInteraction, setActiveInteraction] = useState(null);
   const [pendingInteractionId, setPendingInteractionId] = useState('');
   const [toast, setToast] = useState('');
+  const [idleHintVisible, setIdleHintVisible] = useState(false);
   const [copied, setCopied] = useState(false);
   const [endingGenerated, setEndingGenerated] = useState(false);
   const [lampClickCount, setLampClickCount] = useState(0);
@@ -108,6 +118,10 @@ export default function App() {
   const [owenNoteTaken, setOwenNoteTaken] = useState(false);
   const [owenBirthdayHintSeen, setOwenBirthdayHintSeen] = useState(false);
 
+  const debugEnabled = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('debug') === '1';
+  }, []);
   const currentScene = sceneById[currentSceneId];
   const sceneEasterEggs = useMemo(() => easterEggs.filter((egg) => {
     if (egg.sceneId !== currentSceneId) return false;
@@ -119,6 +133,20 @@ export default function App() {
     x: placement.x,
     y: placement.y,
   })).filter(Boolean), [currentScene]);
+  const gameState = useMemo(() => ({
+    visitedLocations,
+    talkedNpcIds,
+    completedInteractionIds,
+    collectedFragments,
+    collectedMemories,
+    foundEasterEggIds,
+    triggeredEvents,
+  }), [collectedFragments, collectedMemories, completedInteractionIds, foundEasterEggIds, talkedNpcIds, triggeredEvents, visitedLocations]);
+  const currentSceneProgress = useMemo(() => getSceneProgress(currentScene, gameState), [currentScene, gameState]);
+  const overallProgress = useMemo(() => getOverallProgress(scenes, gameState), [gameState]);
+  const nextRecommendation = useMemo(() => getNextRecommendedScene(scenes, gameState), [gameState]);
+  const reportProgressHint = useMemo(() => getReportProgressHint(gameState), [gameState]);
+  const sceneNudge = useMemo(() => getSceneNudge(currentScene, gameState), [currentScene, gameState]);
 
   const showToast = useCallback((message) => {
     setToast(message);
@@ -172,11 +200,28 @@ export default function App() {
     setScreen('scene');
   };
 
-  const returnToRoute = () => {
+  const doReturnToRoute = () => {
     setDialog(null);
+    setPendingRouteReturn(false);
     setActiveInteraction(null);
     setToast('');
     setScreen('route');
+  };
+
+  const returnToRoute = () => {
+    if (screen === 'scene' && !currentSceneProgress.mainComplete && !dialog && !activeInteraction) {
+      setPendingRouteReturn(true);
+      setDialog({
+        speaker: currentScene.name,
+        lines: ['这里好像还有人没聊完，要现在离开吗？'],
+        options: [
+          { id: 'stay-scene', text: '继续逛逛' },
+          { id: 'return-route', text: '返回路线图' },
+        ],
+      });
+      return;
+    }
+    doReturnToRoute();
   };
 
   const movePlayer = useCallback((direction) => {
@@ -229,6 +274,13 @@ export default function App() {
       showToast('这个地方的灯已经被你点亮了，可以去下一站看看。');
     }
   }, [sceneDone, screen, showToast]);
+
+  useEffect(() => {
+    setIdleHintVisible(false);
+    if (screen !== 'scene' || dialog || activeInteraction || nearbyTarget) return undefined;
+    const timer = window.setTimeout(() => setIdleHintVisible(true), 20000);
+    return () => window.clearTimeout(timer);
+  }, [activeInteraction, currentSceneId, dialog, nearbyTarget, playerPosition, screen]);
 
   const openInteraction = (interactionId, interaction, speaker) => {
     setPendingInteractionId(interactionId);
@@ -329,6 +381,15 @@ export default function App() {
   }, [interact, movePlayer]);
 
   const handleDialogOption = (optionId) => {
+    if (pendingRouteReturn) {
+      if (optionId === 'return-route') {
+        doReturnToRoute();
+        return;
+      }
+      setPendingRouteReturn(false);
+      setDialog(null);
+      return;
+    }
     if (pendingInteractionId) {
       const interaction = pendingInteractionId.startsWith('event:')
         ? eventInteractions[pendingInteractionId.replace('event:', '')]
@@ -399,19 +460,15 @@ export default function App() {
       foundEasterEggIds,
       foundEasterEggNames,
       triggeredEvents,
+      overallProgress,
       judgement: getFinalJudgement(collectedMemories.length, foundEasterEggIds.length),
       owenEasterEggFound,
       owenNoteTaken,
       owenBirthdayHintSeen,
     };
-  }, [collectedFragments, collectedMemories, foundEasterEggIds, owenBirthdayHintSeen, owenEasterEggFound, owenNoteTaken, talkedNpcIds, triggeredEvents, visitedLocations]);
+  }, [collectedFragments, collectedMemories, foundEasterEggIds, overallProgress, owenBirthdayHintSeen, owenEasterEggFound, owenNoteTaken, talkedNpcIds, triggeredEvents, visitedLocations]);
 
-  const sceneProgress = (scene) => {
-    const npcFragments = scene.npcs.map((placement) => npcInteractions[placement.id]?.reward.fragment || npcById[placement.id]?.fragment).filter(Boolean);
-    const eventFragments = scene.events.map((event) => eventInteractions[event.id]?.reward.fragment || event.fragment);
-    const uniqueFragments = [...new Set([...npcFragments, ...eventFragments])];
-    return { total: uniqueFragments.length, collected: uniqueFragments.filter((fragment) => collectedFragments.includes(fragment)).length };
-  };
+  const sceneProgress = useCallback((scene) => getSceneProgress(scene, gameState), [gameState]);
 
   const resetGame = () => {
     setScreen('title');
@@ -425,6 +482,7 @@ export default function App() {
     setFoundEasterEggIds([]);
     setTriggeredEvents([]);
     setDialog(null);
+    setPendingRouteReturn(false);
     setActiveInteraction(null);
     setPendingInteractionId('');
     setToast('');
@@ -477,6 +535,8 @@ export default function App() {
           onEnterScene={enterScene}
           onGenerateReport={() => { setEndingGenerated(true); setScreen('result'); }}
           sceneProgress={sceneProgress}
+          nextRecommendation={nextRecommendation}
+          reportProgressHint={reportProgressHint}
         />
       )}
 
@@ -488,6 +548,8 @@ export default function App() {
               <span>碎片 {Math.min(collectedFragments.length, 6)}/6</span>
               <span>地点 {Math.min(visitedLocations.length, 4)}/4</span>
               <span>彩蛋 {foundEasterEggIds.length}/{EASTER_EGG_TOTAL}</span>
+              <span>本地点 {currentSceneProgress.mainDone}/{currentSceneProgress.mainTotal}</span>
+              <span>本地彩蛋 {currentSceneProgress.easterEggsFound}/{currentSceneProgress.easterEggsTotal}</span>
               <button className="hud-report-button return-button pixel-press" type="button" onClick={returnToRoute}>返回路线图</button>
               {canGenerateReport && <button className="hud-report-button pixel-press" type="button" onClick={() => { setEndingGenerated(true); setScreen('result'); }}>生成夜游报告</button>}
             </div>
@@ -496,23 +558,29 @@ export default function App() {
             scene={currentScene}
             sceneNpcs={sceneNpcs}
             sceneEasterEggs={sceneEasterEggs}
+            currentSceneProgress={currentSceneProgress}
             owenNpc={{ ...owenNpc, x: 320, y: 408 }}
             owenStallVisible={owenStallVisible}
             playerPosition={playerPosition}
             talkedNpcIds={talkedNpcIds}
+            completedInteractionIds={completedInteractionIds}
             triggeredEvents={triggeredEvents}
+            foundEasterEggIds={foundEasterEggIds}
             nearbyTarget={nearbyTarget}
             lampClickCount={lampClickCount}
             onLampClick={interactWithLamp}
           />
-          <div className="map-status"><p>{nearbyTarget ? nearbyTarget.label : getGuideText({
+          <div className="map-status">
+            <p>{nearbyTarget ? nearbyTarget.label : (idleHintVisible || currentSceneProgress.mainComplete ? sceneNudge : getGuideText({
             currentSceneId,
             talkedNpcIds,
             collectedMemories,
             foundEasterEggIds,
             collectedFragments,
             visitedLocations,
-          })}</p></div>
+          }))}</p>
+            <small>{reportProgressHint}</small>
+          </div>
           <MobileControls onMove={movePlayer} onInteract={interact} canInteract={Boolean(nearbyTarget)} />
           <DialogBox dialog={dialog} onClose={() => setDialog(null)} onOption={handleDialogOption} onStartGame={startMiniGame} />
           {activeInteraction && <MiniGameModal interaction={activeInteraction} onComplete={completeMiniGame} onSkip={() => {}} />}
@@ -524,6 +592,34 @@ export default function App() {
         <ScreenShell className="result-screen">
           <ResultCard result={result} onRestart={resetGame} onCopy={copyResult} copied={copied} />
         </ScreenShell>
+      )}
+
+      {debugEnabled && (
+        <section className="debug-panel">
+          <h2>Debug</h2>
+          <dl>
+            <dt>currentSceneId</dt>
+            <dd>{currentSceneId}</dd>
+            <dt>visitedLocations ({visitedLocations.length})</dt>
+            <dd>{visitedLocations.join(', ') || '-'}</dd>
+            <dt>collectedFragments ({collectedFragments.length})</dt>
+            <dd>{collectedFragments.join(', ') || '-'}</dd>
+            <dt>talkedNpcIds ({talkedNpcIds.length})</dt>
+            <dd>{talkedNpcIds.join(', ') || '-'}</dd>
+            <dt>triggeredEvents ({triggeredEvents.length})</dt>
+            <dd>{triggeredEvents.join(', ') || '-'}</dd>
+            <dt>foundEasterEggIds ({foundEasterEggIds.length})</dt>
+            <dd>{foundEasterEggIds.join(', ') || '-'}</dd>
+            <dt>collectedMemories ({collectedMemories.length})</dt>
+            <dd>{collectedMemories.join(', ') || '-'}</dd>
+            <dt>scene main progress</dt>
+            <dd>{currentSceneProgress.mainDone}/{currentSceneProgress.mainTotal} ({currentSceneProgress.mainProgressPercent}%)</dd>
+            <dt>scene full progress</dt>
+            <dd>{currentSceneProgress.fullDone}/{currentSceneProgress.fullTotal} ({currentSceneProgress.fullProgressPercent}%)</dd>
+            <dt>canGenerateReport</dt>
+            <dd>{canGenerateReport ? 'true' : 'false'}</dd>
+          </dl>
+        </section>
       )}
     </div>
   );

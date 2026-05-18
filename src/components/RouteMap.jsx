@@ -6,6 +6,8 @@ export default function RouteMap({
   onEnterScene,
   onGenerateReport,
   sceneProgress,
+  nextRecommendation,
+  reportProgressHint,
 }) {
   return (
     <main className="route-screen">
@@ -20,10 +22,25 @@ export default function RouteMap({
           <b>地点 {Math.min(visitedLocations.length, 4)}/4</b>
         </div>
       </header>
+
+      <section className="route-guidance">
+        <strong>今晚建议</strong>
+        <p>{nextRecommendation.text}</p>
+        <small>{reportProgressHint}</small>
+      </section>
+
       <section className="route-line">
         {scenes.map((scene, index) => {
           const visited = visitedLocations.includes(scene.id);
           const progress = sceneProgress(scene);
+          const status = !visited
+            ? '未开始'
+            : progress.fullComplete
+              ? '这盏灯已经被你点亮'
+              : progress.mainComplete
+                ? '主线完成，还有角落没看完'
+                : '探索中';
+
           return (
             <button
               className={`route-card pixel-press ${visited ? 'visited' : ''}`}
@@ -35,7 +52,9 @@ export default function RouteMap({
               <span className={`route-icon route-icon-${scene.backgroundType}`} />
               <strong>{scene.name}</strong>
               <em>{scene.cta}</em>
-              <small>已收集 {progress.collected}/{progress.total}</small>
+              <small>探索 {progress.mainDone}/{progress.mainTotal}</small>
+              <small>彩蛋 {progress.easterEggsFound}/{progress.easterEggsTotal}</small>
+              <small className={`route-status ${progress.mainComplete ? 'complete' : ''}`}>{status}</small>
             </button>
           );
         })}

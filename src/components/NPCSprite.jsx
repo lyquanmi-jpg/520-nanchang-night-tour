@@ -1,12 +1,13 @@
-export default function NPCSprite({ npc, talked = false, hidden = false }) {
+export default function NPCSprite({ npc, talked = false, completed = false, hidden = false }) {
   if (hidden) return null;
 
   return (
     <div
-      className={`npc-sprite npc-${npc.visual || 'default'} ${talked ? 'talked' : ''} ${npc.id === 'owen' ? 'owen-sprite' : ''}`}
+      className={`npc-sprite npc-${npc.visual || 'default'} ${talked ? 'talked' : ''} ${completed ? 'completed' : ''} ${npc.id === 'owen' ? 'owen-sprite' : ''}`}
       style={{ left: `${npc.x}px`, top: `${npc.y}px` }}
       title={npc.name}
     >
+      <span className="npc-state-dot">{completed ? '✓' : '...'}</span>
       <span className="npc-shadow" />
       <span className="npc-legs" />
       <span className="npc-body" />

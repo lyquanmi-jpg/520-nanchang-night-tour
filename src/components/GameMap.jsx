@@ -94,11 +94,14 @@ export default function GameMap({
   scene,
   sceneNpcs,
   sceneEasterEggs,
+  currentSceneProgress,
   owenNpc,
   owenStallVisible,
   playerPosition,
   talkedNpcIds,
+  completedInteractionIds,
   triggeredEvents,
+  foundEasterEggIds,
   nearbyTarget,
   lampClickCount,
   onLampClick,
@@ -114,6 +117,12 @@ export default function GameMap({
           <strong>{scene.name}</strong>
           <span>{scene.subtitle}</span>
         </div>
+        {currentSceneProgress && (
+          <div className="scene-progress-card">
+            <b>本地点 {currentSceneProgress.mainDone}/{currentSceneProgress.mainTotal}</b>
+            <span>彩蛋 {currentSceneProgress.easterEggsFound}/{currentSceneProgress.easterEggsTotal}</span>
+          </div>
+        )}
         {scene.events.map((event) => (
           <EventPoint
             key={event.id}
@@ -124,7 +133,7 @@ export default function GameMap({
         ))}
         {sceneEasterEggs.map((egg) => (
           <div
-            className={`easter-point ${nearbyTarget?.type === 'easter' && nearbyTarget.egg.id === egg.id ? 'active' : ''}`}
+            className={`easter-point ${foundEasterEggIds.includes(egg.id) ? 'found' : ''} ${nearbyTarget?.type === 'easter' && nearbyTarget.egg.id === egg.id ? 'active' : ''}`}
             style={{ left: `${egg.x}px`, top: `${egg.y}px` }}
             key={egg.id}
           >
@@ -133,7 +142,7 @@ export default function GameMap({
           </div>
         ))}
         {sceneNpcs.map((npc) => (
-          <NPCSprite key={npc.id} npc={npc} talked={talkedNpcIds.includes(npc.id)} />
+          <NPCSprite key={npc.id} npc={npc} talked={talkedNpcIds.includes(npc.id)} completed={completedInteractionIds.includes(npc.id)} />
         ))}
         {scene.id === 'store' && (
           <button

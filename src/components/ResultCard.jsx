@@ -24,6 +24,19 @@ export default function ResultCard({ result, onRestart, onCopy, copied }) {
       <div className="save-card-lights" />
       <p className="eyebrow">夜游存档卡</p>
       <h2>520夜游报告</h2>
+      {result.overallProgress && (
+        <div className="report-progress-summary">
+          <b>今晚探索度：主线 {result.overallProgress.mainProgressPercent}%</b>
+          <span>发现彩蛋：{(result.foundEasterEggNames || []).length}/12</span>
+          <span>点亮地点：{result.overallProgress.litScenes}/{result.overallProgress.sceneTotal}</span>
+          <small>
+            {result.overallProgress.mainProgressPercent >= 75
+              ? '你今晚把这座小小的南昌走得很认真。'
+              : '今晚还有几盏灯可以慢慢走过去。'}
+            {(result.foundEasterEggNames || []).length >= 6 ? ' 你还发现了很多藏在角落里的小光。' : ''}
+          </small>
+        </div>
+      )}
       <dl className="report-grid">
         <ReportSection icon="▣" title="你今晚走过">
           <TextList items={result.visitedLocationNames} fallback="还没走远，但今晚已经开始了。" />
