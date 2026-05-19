@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import DialogBox from './components/DialogBox.jsx';
 import FragmentToast from './components/FragmentToast.jsx';
 import GameMap from './components/GameMap.jsx';
+import IntroScreen from './components/IntroScreen.jsx';
 import MiniGameModal from './components/MiniGameModal.jsx';
 import MobileControls from './components/MobileControls.jsx';
-import PixelScene from './components/PixelScene.jsx';
+import MusicToggle from './components/MusicToggle.jsx';
 import ResultCard from './components/ResultCard.jsx';
 import RouteMap from './components/RouteMap.jsx';
 import ScreenShell from './components/ScreenShell.jsx';
@@ -20,19 +21,12 @@ import {
   getSceneNudge,
   getSceneProgress,
 } from './utils/progress.js';
+import useAudio from './hooks/useAudio.js';
 
 const STEP = 22;
 const INTERACT_DISTANCE = 48;
 const START_POSITION = { x: 194, y: 418 };
 const npcById = Object.fromEntries(npcs.map((npc) => [npc.id, npc]));
-
-const introLines = [
-  '今天是520。',
-  '街上好像每个人都有安排。',
-  '你打开手机，发现这个5月其实一直很热闹。',
-  '有人露营，有人唱歌，有人吃饭，有人过生日。',
-  '你只是暂时单排，队友一直在线。',
-];
 
 function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -116,6 +110,7 @@ export default function App() {
   const [owenEasterEggFound, setOwenEasterEggFound] = useState(false);
   const [owenNoteTaken, setOwenNoteTaken] = useState(false);
   const [owenBirthdayHintSeen, setOwenBirthdayHintSeen] = useState(false);
+  const [coverLeaving, setCoverLeaving] = useState(false);
 
   const debugEnabled = useMemo(() => {
     if (typeof window === 'undefined') return false;
@@ -157,6 +152,7 @@ export default function App() {
       ...payload,
     });
   }, [currentSceneId, debugEnabled]);
+  const audio = useAudio(debugEnabled);
 
   const showToast = useCallback((message) => {
     setToast(message);
@@ -168,13 +164,14 @@ export default function App() {
     setCollectedFragments((current) => {
       if (current.includes(fragment)) return current;
       const next = [...current, fragment];
+      audio.playSound('fragment');
       showToast(`获得陪伴碎片：${fragment}`);
       if (next.length === 3) {
         window.setTimeout(() => showToast('今晚好像没有想象中那么冷清。'), 420);
       }
       return next;
     });
-  }, [showToast]);
+  }, [audio, showToast]);
 
   const addMemory = useCallback((memory) => {
     setCollectedMemories((current) => addUnique(current, memory));
@@ -193,6 +190,7 @@ export default function App() {
         foundEasterEggIds: next,
         sceneProgress: getSceneProgress(currentScene, { ...gameState, foundEasterEggIds: next }),
       });
+      audio.playSound('easter');
       showToast(`发现夜游彩蛋：${egg.name}`);
       window.setTimeout(() => {
         if (next.length === 1) showToast('你发现了一个夜游彩蛋。南昌今晚好像还藏着更多小东西。');
@@ -203,9 +201,20 @@ export default function App() {
       setDialog({ speaker: egg.name, lines: [egg.text] });
       return next;
     });
-  }, [currentScene, debugLog, gameState, showToast]);
+  }, [audio, currentScene, debugLog, gameState, showToast]);
+
+  const startRoute = useCallback(() => {
+    audio.playSound('click');
+    audio.startBgm();
+    setCoverLeaving(true);
+    window.setTimeout(() => {
+      setScreen('route');
+      setCoverLeaving(false);
+    }, 400);
+  }, [audio]);
 
   const enterScene = (sceneId) => {
+    audio.playSound('click');
     const scene = sceneById[sceneId];
     const nextState = { ...gameState, visitedLocations: addUnique(visitedLocations, sceneId) };
     debugLog('enter-scene', {
@@ -227,6 +236,7 @@ export default function App() {
   };
 
   const doReturnToRoute = () => {
+    audio.playSound('click');
     setDialog(null);
     setPendingRouteReturn(false);
     setActiveInteraction(null);
@@ -376,10 +386,11 @@ export default function App() {
 
   const interact = useCallback(() => {
     if (dialog || activeInteraction || !nearbyTarget) return;
+    audio.playSound('click');
     if (nearbyTarget.type === 'npc') interactWithNpc(nearbyTarget.npc);
     if (nearbyTarget.type === 'event') interactWithEvent(nearbyTarget.event);
     if (nearbyTarget.type === 'easter') findEasterEgg(nearbyTarget.egg.id);
-  }, [activeInteraction, dialog, findEasterEgg, interactWithEvent, interactWithNpc, nearbyTarget]);
+  }, [activeInteraction, audio, dialog, findEasterEgg, interactWithEvent, interactWithNpc, nearbyTarget]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -394,6 +405,7 @@ export default function App() {
   }, [interact, movePlayer]);
 
   const handleDialogOption = (optionId) => {
+    audio.playSound('click');
     if (pendingRouteReturn) {
       if (optionId === 'return-route') {
         doReturnToRoute();
@@ -433,6 +445,7 @@ export default function App() {
   };
 
   const startMiniGame = () => {
+    audio.playSound('click');
     const interaction = pendingInteractionId.startsWith('event:')
       ? eventInteractions[pendingInteractionId.replace('event:', '')]
       : npcInteractions[pendingInteractionId];
@@ -473,6 +486,12 @@ export default function App() {
   };
 
   const canGenerateReport = collectedFragments.length >= 6 || visitedLocations.length >= 4;
+  const generateReport = useCallback(() => {
+    audio.playSound('fragment');
+    setEndingGenerated(true);
+    setScreen('result');
+  }, [audio]);
+
   const result = useMemo(() => {
     const visitedLocationNames = visitedLocations.map((id) => sceneById[id]?.name).filter(Boolean);
     const talkedNpcNames = talkedNpcIds.map((id) => npcById[id]?.name).filter(Boolean);
@@ -496,6 +515,7 @@ export default function App() {
   const sceneProgress = useCallback((scene) => getSceneProgress(scene, gameState), [gameState]);
 
   const resetGame = () => {
+    audio.playSound('click');
     setScreen('title');
     setCurrentSceneId('river');
     setPlayerPosition(START_POSITION);
@@ -519,6 +539,7 @@ export default function App() {
   };
 
   const copyResult = async () => {
+    audio.playSound('click');
     const text = buildCopyText(result);
     try {
       await navigator.clipboard.writeText(text);
@@ -536,17 +557,9 @@ export default function App() {
 
   return (
     <div className="app">
+      <MusicToggle enabled={audio.enabled} onToggle={audio.toggle} />
       {screen === 'title' && (
-        <ScreenShell className="title-screen">
-          <PixelScene />
-          <section className="hero-panel">
-            <p className="eyebrow">南昌精英搭子群 520 夜游存档</p>
-            <h1>520南昌搭子夜游</h1>
-            <p className="subtitle">一个人的520，也可以在南昌慢慢走</p>
-            <div className="intro-copy">{introLines.map((line) => <p key={line}>{line}</p>)}</div>
-            <button className="primary-button pixel-press" type="button" onClick={() => setScreen('route')}>出门走走</button>
-          </section>
-        </ScreenShell>
+        <IntroScreen leaving={coverLeaving} onStart={startRoute} />
       )}
 
       {screen === 'route' && (
@@ -556,7 +569,7 @@ export default function App() {
           collectedFragments={collectedFragments}
           canGenerateReport={canGenerateReport}
           onEnterScene={enterScene}
-          onGenerateReport={() => { setEndingGenerated(true); setScreen('result'); }}
+          onGenerateReport={generateReport}
           sceneProgress={sceneProgress}
           nextRecommendation={nextRecommendation}
           reportProgressHint={reportProgressHint}
@@ -574,7 +587,7 @@ export default function App() {
               <span>本地点 {currentSceneProgress.mainDone}/{currentSceneProgress.mainTotal}</span>
               <span>本地彩蛋 {currentSceneProgress.easterEggsFound}/{currentSceneProgress.easterEggsTotal}</span>
               <button className="hud-report-button return-button pixel-press" type="button" onClick={returnToRoute}>返回路线图</button>
-              {canGenerateReport && <button className="hud-report-button pixel-press" type="button" onClick={() => { setEndingGenerated(true); setScreen('result'); }}>生成夜游报告</button>}
+              {canGenerateReport && <button className="hud-report-button pixel-press" type="button" onClick={generateReport}>生成夜游报告</button>}
             </div>
           </header>
           <GameMap

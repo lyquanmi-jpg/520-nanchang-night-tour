@@ -7,6 +7,11 @@ export default function PixelScene({ compact = false }) {
       <div className="skyline">
         <span />
         <span />
+        <span className="tengwang" />
+        <span />
+      </div>
+      <div className="river-lamps">
+        <span />
         <span />
         <span />
       </div>
@@ -14,9 +19,11 @@ export default function PixelScene({ compact = false }) {
         <i />
         <i />
         <i />
+        <i />
       </div>
       <div className="street">
         <div className="lamp"><b /></div>
+        <div className="lamp lamp-two"><b /></div>
         <div className="person"><b /></div>
         <div className="phone">
           <span />
