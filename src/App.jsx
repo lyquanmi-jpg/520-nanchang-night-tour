@@ -198,7 +198,11 @@ export default function App() {
         if (next.length === 6) showToast('今晚被你收好的小事，已经不止一点点了。');
         if (next.length === 10) showToast('你几乎把这座夜晚的小心意都找到了。');
       }, 600);
-      setDialog({ speaker: egg.name, lines: [egg.text] });
+      setDialog({
+        speaker: egg.name,
+        lines: [egg.text],
+        options: egg.options,
+      });
       return next;
     });
   }, [audio, currentScene, debugLog, gameState, showToast]);
@@ -406,6 +410,30 @@ export default function App() {
 
   const handleDialogOption = (optionId) => {
     audio.playSound('click');
+    if (optionId === 'hongjie-noodle') {
+      addMemory('Owen 在小摊边给红姐煮了一碗鸡蛋面，认真收下了那句生日祝福。');
+      setDialog({
+        speaker: 'Owen 的烧烤小摊',
+        lines: [
+          'Owen 愣了一下，很快把烤架旁的小锅端了出来。',
+          '他说：那得煮一碗鸡蛋面。谢谢你记得，也谢谢你跑来祝我生日快乐。',
+          '面不算很精致，但鸡蛋卧得刚好，汤也热。',
+        ],
+      });
+      return;
+    }
+    if (optionId === 'stall-visitor') {
+      addMemory('你在 Owen 的小摊旁边坐了一会儿，他认真谢过朋友的到访。');
+      setDialog({
+        speaker: 'Owen 的烧烤小摊',
+        lines: [
+          'Owen 给你挪了挪小凳子。',
+          '他说：那也很好。今晚能有朋友路过，已经很够意思了。',
+          '烤串还热着，你坐一会儿再走。',
+        ],
+      });
+      return;
+    }
     if (pendingRouteReturn) {
       if (optionId === 'return-route') {
         doReturnToRoute();

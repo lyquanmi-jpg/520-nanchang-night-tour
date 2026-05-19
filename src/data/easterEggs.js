@@ -110,12 +110,16 @@
   },
   {
     id: 'extra_chair',
-    name: '多摆的一把小凳子',
+    name: '小摊边坐一会儿',
     sceneId: 'owen_stall',
     x: 92,
     y: 372,
     label: '小凳子',
-    text: '小凳子空着一把，像是默认会有人路过坐下。',
+    text: '小凳子空着一把，像是默认会有人路过坐下。Owen 把火调小了一点，问：坐会儿？今晚这把凳子不收摊。',
+    options: [
+      { id: 'hongjie-noodle', text: '我是红姐，来坐一会儿' },
+      { id: 'stall-visitor', text: '我只是路过的朋友' },
+    ],
   },
   {
     id: 'owen_hidden_birthday',
