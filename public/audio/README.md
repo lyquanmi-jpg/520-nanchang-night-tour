@@ -1,11 +1,11 @@
 Audio files are optional. The game has Web Audio fallback effects and will not break if these files are missing.
 
-Place production audio here with these exact names:
+The current build includes generated WAV audio. You can replace them with your own files using these exact names:
 
-- `bgm-night-tour.mp3` - low-volume looping background music, warm night-tour mood.
-- `ui-click.mp3` - short button click sound.
-- `fragment-get.mp3` - soft two-note reward sound.
-- `easter-egg.mp3` - small three-note discovery sound.
+- `bgm-night-tour.wav` - low-volume looping background music, warm night-tour mood.
+- `ui-click.wav` - short button click sound.
+- `fragment-get.wav` - soft two-note reward sound.
+- `easter-egg.wav` - small three-note discovery sound.
 
 Recommended levels:
 

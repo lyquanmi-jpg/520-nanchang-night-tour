@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const STORAGE_KEY = '520-night-tour-audio-enabled';
-const BGM_SRC = '/audio/bgm-night-tour.mp3';
+const BGM_SRC = '/audio/bgm-night-tour.wav';
 
 function getInitialEnabled() {
   if (typeof window === 'undefined') return true;
@@ -10,9 +10,9 @@ function getInitialEnabled() {
 
 export const audioAssets = {
   bgm: BGM_SRC,
-  click: '/audio/ui-click.mp3',
-  fragment: '/audio/fragment-get.mp3',
-  easter: '/audio/easter-egg.mp3',
+  click: '/audio/ui-click.wav',
+  fragment: '/audio/fragment-get.wav',
+  easter: '/audio/easter-egg.wav',
 };
 
 export default function useAudio(debugEnabled = false) {
